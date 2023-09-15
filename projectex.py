@@ -7,16 +7,15 @@ from pygame.locals import *
 import math 
 import random 
 
-width = 600 # 상수 설정
+# 상수 설정 
+width = 600 
 height = 400
 white = (255, 255, 255)
 black = (  0,   0,   0)
 runCount = 0
 
-
+#카메라 입력 설정 
 cap = cv2.VideoCapture(cv2.CAP_DSHOW + 0) 
-enemy_x =100
-enemy_y = 200 
 
 #pygame 창 설정
 pygame.init() # pygame 초기화
@@ -25,11 +24,11 @@ screen = pygame.display.set_mode((width, height), 0, 32) #pygame을 띄울 창 �
 gulimfont = pygame.font.SysFont('굴림', 70) # pygame 내부에서 사용할 글씨체 설정
 clock = pygame.time.Clock()
 
-# 손인식 
-mpHands = mp.solutions.hands
-hands = mpHands.Hands()
-mpDraw = mp.solutions.drawing_utils
-ids = [4,8,12,16,20] # 각 손가락 맨 끝의 landmark
+# 손인식 ------------------------------------------------------------------------------------------------------------------------------
+mpHands = mp.solutions.hands # hand 처리를 위한 code 
+hands = mpHands.Hands() # 손 감지 모델을 load 하고 사용하기 위한 code
+mpDraw = mp.solutions.drawing_utils # hand 이미지 위에 랜드마크를 그리기 위한 code
+ids = [4,8,12,16,20] # 각 손가락 맨 끝의 landmark를 리스트에 저장 
 
 # 게임 내부에서 사용할 이미지 로드 
 char = pygame.image.load("project/dora.png")
@@ -48,6 +47,7 @@ char1_speed = 5
 game_over = False
 score = 0
 
+# 장애물 클래스 생성 
 class Obstacle:
     def __init__(self, x, y, speed_x=0, speed_y=0):
         self.x = x
@@ -59,16 +59,24 @@ class Obstacle:
         self.x += self.speed_x
         self.y += self.speed_y
 
+# 장애물이 생성되었을 때 장애물 하나하나를 저장하기 위한 list 
 obstacle_list = []
 
-# 손가락의 각 랜드마크를 얻어온 후 그 좌표값을 lmlist에 더함
+# 손가락의 위치를 감지하는 함수 -----------------------------------------------------------------------------------------
 def fingerPosition(image, handNo=0):
     lmList = []
+    # 만약 랜드마크 정보가 감지 되었다면 
     if results.multi_hand_landmarks:
+        # 그정보를 myHand에 저장 
         myHand = results.multi_hand_landmarks[handNo]
+        # enumerate는 튜플을 생성함 
+        # myHand 라는 랜드마크 정보의 인덱스를 id에 저장 요소 정보를 lm에 저장 
         for id, lm in enumerate(myHand.landmark):
+            # 매개변수로 받아온 image 의 h(height), w(width), c(channel)정보를 가져옴
             h, w, c = image.shape
+            # 요소정보 lm(랜드마크)의 x, y 위치정보와 width, height를 각각 곱한 정수를 cx, cy에 저장
             cx, cy = int(lm.x * w), int(lm.y * h)
+            # 위에서 지정한 lmList라는 리스트에 인덱스와 cx, cy정보를 추가
             lmList.append([id, cx, cy])
     return lmList
 
@@ -99,6 +107,7 @@ def draw_obstacles():
 
 # 충돌 판정 함수
 def is_collision(char_x, char_y, obstacle):
+    # math.sqrt = 제곱근 , ** -> 제곱
     distance = math.sqrt((char_x - obstacle.x) ** 2 + (char_y - obstacle.y) ** 2)
     if distance < 30:
         return True
@@ -113,7 +122,7 @@ boom = 1
 
 #무한 반복문 시작 
 while True:
-    #카메라 읽어옴 
+    #카메라 읽어옴 (True or False 의 bool값 과 실제로 읽어온 frame)
     success, img = cap.read()
     # 게임 시작전 화면 구성 
     if startnum ==0:
@@ -124,8 +133,9 @@ while True:
         screen.blit(startPage2, (width / 2 -100 , height / 2 ))
         pygame.display.update() 
         startnum = 1
-    # 시작 화면에 손가락을 보여줄 시 
+    # 시작 화면에 손을 인식할 시 
     if startnum ==1:
+        # game_over 가 True 라면 
         if game_over is True:
             screen.fill(white)
             retry = gulimfont.render(f"ReTry?", True, (255, 0, 0))
@@ -136,20 +146,23 @@ while True:
             pygame.display.update() 
             cv2.waitKey()
             game_over = False
-        #만약 pygame이 끝났다는 이벤트가 오면 game_over True
+        #만약 pygame이 끝났다는 이벤트가 오면 game_over = True
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 game_over = True
-        # 게임이 시작한 이후 게임이 끝날 때
+
+        # 게임 시간 계산 
         current_time = time.time()
         elapsed_time = current_time - start_time
+        
         # game_over가 True 가 아니라면 
         if not game_over:
             # 카메라 얻어온 것을 BGR -> RGB로 바꿈
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # 손을 감지 하고 추적함
             results = hands.process(imgRGB)
             list = fingerPosition(img)
-            # 손을 인식하고 손의 landmark 8번에 설정한 색의 동그라미를 그림 
+            # 손을 인식하고 손의 landmark 8번에 설정한 색의 동그라미를 그림 (카메라 인식을 확인하기 위해 사용)
             if results.multi_hand_landmarks:
                 for handLandmarks in results.multi_hand_landmarks:
                     for id, lm in enumerate(handLandmarks.landmark):
@@ -158,25 +171,33 @@ while True:
                         #검지 끝
                         if id == 8:
                             cv2.circle(img, (cx, cy), 15, (90, 180, 0), cv2.FILLED)
-            # 스크린을 반복문 돌 때마다 흰색으로 채워줌                          
+            # 스크린을 반복문 돌 때마다 흰색으로 채워줌 (캐릭터와 적의 이동 전 이미지를 없앰)                          
             screen.fill(white)
-            #폭탄의 초기설정과 char1의 위치를 얻음 
+            
+            #폭탄의 초기설정
             boomnum = gulimfont.render("boom : %d" %boom, 1, (255,0,0))
-            screen.blit(boomnum, (0, 0))                   
+            screen.blit(boomnum, (0, 0))  
+            
+            # char1의 위치를 얻음 
             char_rect = char1.get_rect()
+            
             # 만약 손가락 2개를 인식하여 모드를 바꾼다면 Hard라는 텍스트를 띄움 
             if modenum == 1 :
                 mode = gulimfont.render("Hard", 1, (255,0,0))
-                screen.blit(mode, (480, 0))          
+                screen.blit(mode, (480, 0))       
+                
             # 손가락을 인식한 리스트의 개수가 0이 아니라면 손가락의 개수를 셈 
             if len(list) != 0:
                 fingers = []
                 for id in range(1, 5):
+                    # ids는 각 손가락 끝을 저장한 list 
+                    # 손 끝 랜드마크의 cy 가 해당 랜드마크의 -2 즉 두 마디 밑의 랜드마크 보다 작다면 손가락 리스트에 1을 더함 
                     if list[ids[id]][2] < list[ids[id] - 2][2]:
                         fingers.append(1)
                     if (list[ids[id]][2] > list[ids[id] - 2][2] ):
                         fingers.append(0)
                 totalFingers = fingers.count(1)
+                
                 #만약 손가락 개수가 0이라면 폭탄을 터트려 모든 적을 없애고 0.04초 delay
                 if totalFingers == 0 :
                     screen.blit(char1,[(600-cx),(cy-150)])
