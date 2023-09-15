@@ -215,10 +215,7 @@ while True:
                 elif totalFingers == 2 :
                     modenum = 1
                     screen.blit(light1,[(600-cx),(cy-150)])
-                    distance = math.sqrt((200 - obstacle.x) ** 2 + (300 - obstacle.y) ** 2)
-                    if distance < 500:
-                        enemy1 = pygame.transform.scale(enemy,(80,80))
-                        tick_time = pygame.time.get_ticks()
+                    enemy1 = pygame.transform.scale(enemy,(80,80))
                     time.sleep(0.5)
                 # 랜덤 값을 통해 위,아래로 움직이는 장애물 생성 
                 if random.randint(0, 100) < 10:
