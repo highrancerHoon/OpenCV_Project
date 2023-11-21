@@ -1,4 +1,6 @@
-본 프로젝트 코드의 구성에는 
+본 프로젝트 OpenCV를 이용한 피하기 게임
+
+코드의 구성에는 
 
 https://www.hackster.io/coderscafe/gesture-controlled-smart-mirror-bced8f
 
